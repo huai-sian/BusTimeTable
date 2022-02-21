@@ -69,7 +69,7 @@
       
       <section>
         <div class="row">
-          <div class="col-6">
+          <div class="col-12 col-md-6">
             <ul class="nav nav-tabs" id="myTab" role="tablist" v-if="routeName">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">
@@ -93,6 +93,7 @@
                   <div class="item-row"
                       v-for="(item, i) in filterOutwardStopsData"
                       :key='i'
+                      @click.prevent="clickStop(item)"
                       >
                     <div class="item-col stop-sequence">
                       <div class="number">
@@ -136,6 +137,7 @@
                   <div class="item-row"
                       v-for="(item, i) in filterReturnStopsData"
                       :key='i'
+                      @click.prevent="clickStop(item)"
                       >
                     <div class="item-col stop-sequence">
                       <div class="number">
@@ -179,8 +181,8 @@
               </div>
             </div>
           </div>
-          <div class="col-6">
-            <l-map v-bind:zoom='zoom' v-bind:minZoom='5' v-bind:center="userPosition" ref="mapInfo" class="">
+          <div class="col-12 col-md-6" style="height: 80vh;">
+            <l-map v-bind:zoom='zoom' v-bind:minZoom='5' v-bind:center="userPosition" ref="mapInfo" style="z-index: 90;">
               <l-tile-layer v-bind:url="url"></l-tile-layer>
                 <l-marker :lat-lng="userPosition" @add="openPopup" :icon="icon">
                   <l-popup v-bind:option="{ autoClose: false, closeOnClick: false }">
@@ -196,10 +198,10 @@
                     v-bind:key="i" v-bind:lat-lng="[item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']]" 
                     @click="openPopup"
                     :icon="icon">
-                    <l-popup v-bind:option="{ autoClose: false, closeOnClick: false }">
+                    <l-popup v-bind:option="{ autoClose: false, closeOnClick: false, minWidth: '400' }" >
                       <div class="d-flex align-items-center justify-content-center">
-                        <span>{{ item.StopSequence}}</span>
-                        <h3>{{ item.StopName.Zh_tw }}</h3>
+                        <span class="popup__num">{{ item.StopSequence}}</span>
+                        <h3 class="popup__txt">{{ item.StopName.Zh_tw }}</h3>
                       </div>
                     </l-popup>
                   </l-marker>
@@ -461,15 +463,35 @@ export default {
         this.filterReturnStopsData.sort(function (a, b) {
           return a.StopSequence - b.StopSequence
         })
+        this.setView(this.OutwardStopsArray);
         console.log(this.filterReturnStopsData);
       }).catch(err => {
         console.log(err);
       })
     },
+    setView(data) {
+      const vm = this;
+      const tempPositionArr = data.map(item => {
+        return [item.StopPosition.PositionLat, item.StopPosition.PositionLon];
+      })
+      const index = Math.round(tempPositionArr.length / 2)
+      const center = tempPositionArr[index];
+      const map  = vm.$refs.mapInfo.mapObject;
+      console.log(map);
+      map.setView(center, 15);
+    },
     openPopup(e) {
       this.$nextTick(() => {
         e.target.openPopup();
       })
+    },
+    clickStop(item) {
+      const vm = this;
+      const center = [item.Stops.StopPosition.PositionLat, item.Stops.StopPosition.PositionLon];
+      const map  = vm.$refs.mapInfo.mapObject;
+      console.log(map);
+      map.setView(center, 15);
+      //map.openPopup()
     }
   },
   computed: {

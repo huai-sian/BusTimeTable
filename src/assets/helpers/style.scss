@@ -16,6 +16,7 @@ a {
   opacity: 0;
   transition: all .4s;
   cursor: pointer;
+  z-index: 100;
   &.show {
     opacity: 1;
     right: 2rem;
@@ -136,7 +137,7 @@ a {
     position: absolute;
     left: 0;
     bottom: -290px;
-    z-index: 3;
+    z-index: 95;
   }
 
   &-list-item {
@@ -342,4 +343,24 @@ a {
   font-size: 14px;
   letter-spacing: .28px;
   color: #79829c;
+}
+
+.popup {
+  &__num {
+    display: flex;
+    width: 30px;
+    height: 30px;
+    background-color: #ff4c29;
+    color: white;
+    border-radius: 50%;
+    font-size: 15px;
+    padding: 4px;
+    justify-content: center;
+    align-items: center;
+    margin-right: 5px;
+  }
+  &__txt {
+    font-size: 1.2rem;
+    color: #ff4c29;
+  }
 }
