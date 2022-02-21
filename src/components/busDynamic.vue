@@ -1,0 +1,498 @@
+<template>
+  <div class="">
+    <div class="container">
+      <section class="row text-center">
+        <div class="col-12">
+          <div>
+            <span class="top-titleEn">
+              Bus RouteName
+            </span>
+            <h2 class="mb-5 top-title">查詢公車動態</h2>
+            <p class="top-txt"> 選擇相對應縣市後，再選擇要查詢公車路線，即可顯示相關停靠站序、公車到站時刻等。 </p>
+          </div>
+        </div>
+      </section>
+      <section class="d-flex justify-content-between select-box">
+        <div class="select-city d-flex flex-column ">
+          <label for="city" class="select-label">選擇地區</label>
+          <select 
+          v-model="cityName"
+          @change="getRouteName"
+          class="form-select"
+          id="city"
+          name="city"
+          >
+          <option disabled value>請選擇縣市</option>
+          <option 
+            v-for="(city, idx) in cityData"
+            :key="idx" :value="city.City"
+            >{{ city.CityName }}</option>
+          </select>
+        </div>
+        <div class="select-route d-flex flex-column position-relative">
+          <label for="route" class="select-label">選擇公車路線</label>
+          <input type="text" v-model.trim="keyword" class="form-control" id="route" name="route" @change="listOpen = true" @click="listOpen = true">
+          <ul class="select-query" v-if="!keyword && listOpen && cityName">
+            <li class="select-list-item" v-for="route in ownAllRouteData" :key="route.RouteID" @click.prevent="selectRoute(route.RouteName, route.displayRouteName)">{{ route.displayRouteName }}</li>
+          </ul>
+          <ul class="select-query" v-if="keyword && listOpen && cityName">
+            <li v-if="filterData.length == 0 || !cityName">沒有資料符合</li>
+            <li class="select-list-item" v-for="route in filterData" :key="route.RouteID" @click.prevent="selectRoute(route.RouteName, route.displayRouteName)">{{ route.displayRouteName }}</li>
+          </ul>
+        </div>
+        
+      </section>
+        
+        
+        <section class="route-content" v-if="routeName">
+          <div class="d-flex">
+            <div class="route-name">
+              <p class="route-name__txt">Route Name</p>
+              <p class="route-name__num">{{ routeName }}</p>
+            </div>
+            <div class="route-outward-return">
+              <div class="route-name__txt">
+                Departure & Destination Stop Name
+              </div>
+              <div class="outward-return-name">
+                <div class="name-item">
+                  {{ departureStopNameZh }}
+                </div>
+                <i class="fas fa-exchange d-inline-block px-3" style="font-size: 42px;"></i>
+                <div class="name-item">
+                  {{ destinationStopNameZh }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      
+      <section>
+        <div class="row">
+          <div class="col-6">
+            <ul class="nav nav-tabs" id="myTab" role="tablist" v-if="routeName">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">
+                  去程 
+                  <span class="nav-link__route">{{ destinationStopNameZh }}</span></button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">
+                  返程 
+                  <span class="nav-link__route">{{ departureStopNameZh }}</span></button>
+              </li>
+            </ul>
+            <div class="tab-content" id="myTabContent" v-if="routeName">
+              <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                <div class="item-thead">
+                  <div class="item-col stop-sequence">站序</div>
+                  <div class="item-col stop-status">預估到站</div>
+                  <div class="item-col stop-name">站名</div>
+                </div>
+                <div class="item-body">
+                  <div class="item-row"
+                      v-for="(item, i) in filterOutwardStopsData"
+                      :key='i'
+                      >
+                    <div class="item-col stop-sequence">
+                      <div class="number">
+                        {{ item.StopSequence }}
+                        <span class="round"></span>
+                      </div>
+                    </div>
+                    <div class="item-col stop-status">
+                      <div class="item-status status" v-if="item.StopStatus == 0 && item.EstimateTime > 1">
+                        {{ item.EstimateTime }} 分鐘
+                      </div>
+                      <div class="item-status status-enter" v-else-if="item.StopStatus == 0 && item.EstimateTime <= 1">
+                        進站中
+                      </div>
+                      <div class="item-status status-1" v-else-if="item.StopStatus == 1">
+                        尚未發車
+                      </div>
+                      <div class="item-status status-2" v-else-if="item.StopStatus == 2">
+                        交管不停靠
+                      </div>
+                      <div class="item-status status-3" v-else-if="item.StopStatus === 3">
+                        末班車已過
+                      </div>
+                      <div class="item-status status-4" v-else-if="item.StopStatus === 4">
+                        今日未營運
+                      </div>
+                    </div>
+                    <div class="item-col stop-name">
+                      {{ item.StopNameZh }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                <div class="item-thead">
+                  <div class="item-col stop-sequence">站序</div>
+                  <div class="item-col stop-status">預估到站</div>
+                  <div class="item-col stop-name">站名</div>
+                </div>
+                <div class="item-body">
+                  <div class="item-row"
+                      v-for="(item, i) in filterReturnStopsData"
+                      :key='i'
+                      >
+                    <div class="item-col stop-sequence">
+                      <div class="number">
+                        {{ item.StopSequence }}
+                      </div>
+                    </div>
+                    <div class="item-col stop-status">
+                      <div class="item-status status" v-if="item.StopStatus == 0 && item.EstimateTime > 1">
+                        {{ item.EstimateTime }} 分鐘
+                      </div>
+                      <div class="item-status status-enter" v-else-if="item.StopStatus == 0 && item.EstimateTime <= 1">
+                        進站中
+                      </div>
+                      <div class="item-status status-1" v-else-if="item.StopStatus == 1">
+                        尚未發車
+                      </div>
+                      <div class="item-status status-2" v-else-if="item.StopStatus == 2">
+                        交管不停靠
+                      </div>
+                      <div class="item-status status-3" v-else-if="item.StopStatus === 3">
+                        末班車已過
+                      </div>
+                      <div class="item-status status-4" v-else-if="item.StopStatus === 4">
+                        今日未營運
+                      </div>
+                    </div>
+                    <div class="item-col stop-name">
+                      {{ item.StopNameZh }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="no-data" v-else-if="!routeName">
+              <div class="no-data__content">
+                <img src="../assets/images/bus.png"></img>
+                <p class="txt">
+                  <span>請先選擇地區</span>
+                  <span>再選擇/搜尋公車路線</span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <l-map v-bind:zoom='zoom' v-bind:minZoom='5' v-bind:center="userPosition" ref="mapInfo" class="">
+              <l-tile-layer v-bind:url="url"></l-tile-layer>
+                <l-marker :lat-lng="userPosition" @add="openPopup" :icon="icon">
+                  <l-popup v-bind:option="{ autoClose: false, closeOnClick: false }">
+                    <div class="d-flex align-items-center flex-column">
+                      <div class="mr-1"><i class="fas fa-user-secret"></i></div>
+                      <div>你的位置</div>
+                    </div>
+                  </l-popup>
+                </l-marker>
+                <template v-if="routeName">
+                  <l-marker 
+                    v-for="(item, i) in OutwardStopsArray"
+                    v-bind:key="i" v-bind:lat-lng="[item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']]" 
+                    @click="openPopup"
+                    :icon="icon">
+                    <l-popup v-bind:option="{ autoClose: false, closeOnClick: false }">
+                      <div class="d-flex align-items-center justify-content-center">
+                        <span>{{ item.StopSequence}}</span>
+                        <h3>{{ item.StopName.Zh_tw }}</h3>
+                      </div>
+                    </l-popup>
+                  </l-marker>
+                </template>
+            </l-map>
+          </div>
+        </div>
+      </section>
+    </div>
+    
+  </div>
+</template>
+
+<script>
+// @ is an alias to /src
+import jsSHA from 'jssha';
+import { icon } from "leaflet";
+import {
+  LMap, LTileLayer, LMarker, LPopup, LIcon
+} from 'vue2-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+export default {
+  name: 'busDynamic',
+  props: {
+    msg: String
+  },
+  components: {
+    LMap,
+    LTileLayer,
+    LMarker,
+    LPopup,
+    LIcon
+  },
+  data(){
+    return {
+      cityData: [],
+      cityName: '',
+      routeData: [],
+      subRouteData: [],
+      ownRouteData: [],
+      ownSubRouteData: [],
+      ownAllRouteData: [],
+      routeName: '',
+      displayRouteName: '',
+      keyword: '',
+      outwardStopOfRouteData: [],
+      returnStopOfRouteData: [],
+      EstimatedTimeData: [],
+      OutwardStopsArray: [],
+      ReturnStopsArray: [],
+      filterOutwardStopsData: [],
+      filterReturnStopsData: [],
+      departureStopNameZh: '',
+      destinationStopNameZh: '',
+      listOpen: false,
+      userPosition: [25.033671, 121.564427],
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      zoom: 10,
+      icon: icon({
+        iconUrl: "static/icon-marker-stop.png",
+        iconSize: [20, 20]
+      }),
+      map: null,
+    }
+  },
+  methods: {
+    getCityData() {
+      this.axios({
+        methods: 'get',
+        url: 'https://gist.motc.gov.tw/gist_api/V3/Map/Basic/City?$format=JSON',
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        this.cityData = res.data;
+      }).catch(err => {
+        console.log(err);
+      })
+    },
+    getAuthorizationHeader() {
+      // const AppID = '62fb64915752471fb3027277da00f6cf'
+      // const AppKey = 'tHKmnQUiUJOJZL3KesbRFriOLi4'
+      const AppID = process.env.VUE_APP_APPID
+      const AppKey = process.env.VUE_APP_APPKEY
+      const GMTString = new Date().toGMTString()
+      const ShaObj = new jsSHA('SHA-1', 'TEXT')
+      ShaObj.setHMACKey(AppKey, 'TEXT')
+      ShaObj.update('x-date: ' + GMTString)
+      const HMAC = ShaObj.getHMAC('B64')
+      const Authorization = 'hmac username=\"' + AppID + '\", algorithm=\"hmac-sha1\", headers=\"x-date\", signature=\"' + HMAC + '\"';
+      return { Authorization: Authorization, 'X-Date': GMTString }
+    },
+    getRouteName() {
+      //console.log(this.cityName);
+      this.ownRouteData = [];
+      this.ownSubRouteData = [];
+      this.axios({
+        methods: 'get',
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${this.cityName}?$format=JSON`,
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        //console.log(res.data);
+        const temp = [...res.data];
+        this.routeData = temp.filter(item => {
+          return item.SubRoutes.length <= 2
+        });
+        this.subRouteData = temp.filter(item => {
+          return item.SubRoutes.length > 2
+        });
+        this.setAllRouteName();
+      }).catch(err => {
+        console.log(err);
+      })
+    },
+    setRouteName() {
+      this.routeData.forEach((item, idx) => {
+        this.ownRouteData.push({
+          RouteID: item.RouteID,
+          RouteName: item.RouteName.Zh_tw,
+          DepartureStopName: item.DepartureStopNameZh,
+          DestinationStopName: item.DestinationStopNameZh,
+          SubRoutes: item.SubRoutes,
+          displayRouteName: `[${item.RouteName.Zh_tw}] ${item.DepartureStopNameZh} - ${item.DestinationStopNameZh}`,
+        });
+      })
+      this.ownRouteData.sort((a, b) => {
+        return a.RouteName.localeCompare(b.RouteName)
+      })
+    },
+    setSubRouteName() {
+      this.subRouteData.forEach((item, idx) => {
+        this.ownSubRouteData.push({
+          RouteID: item.RouteID,
+          RouteName: item.RouteName.Zh_tw,
+          DepartureStopName: item.DepartureStopNameZh,
+          DestinationStopName: item.DestinationStopZh,
+          SubRoutes: item.SubRoutes,
+          displayRouteName: `[${item.RouteName.Zh_tw}] ${item.DepartureStopNameZh} - ${item.DestinationStopNameZh}`,
+        });
+      })
+      this.ownSubRouteData.sort((a,b) => {
+        return a.RouteName.localeCompare(b.RouteName)
+      })
+    },
+    setAllRouteName() {
+      this.setRouteName();
+      this.setSubRouteName();
+      this.ownAllRouteData = this.ownRouteData.concat(this.ownSubRouteData);
+    },
+    setRouteStopName() {
+      this.ownAllRouteData.forEach(item => {
+        if(item.RouteName == this.routeName) {
+          this.departureStopNameZh = item.DepartureStopName
+          this.destinationStopNameZh = item.DestinationStopName
+          //console.log(this.departureStopNameZh);
+          //console.log(this.destinationStopNameZh);
+        }
+      })
+    },
+    selectRoute(name, displayName) {
+      this.displayRouteName = displayName;
+      this.routeName = name;
+      this.listOpen = false;
+      this.setRouteStopName();
+      this.axios({
+        methods: 'get',
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        if(res.data.length > 0) {
+          this.filterOutwardStopsData = []
+          this.filterReturnStopsData = []
+        }
+        const matchStopOfRoute = res.data.filter(item => {
+          if(item.RouteName.Zh_tw == this.routeName) {
+            return item
+          }
+        })
+        this.outwardStopOfRouteData = matchStopOfRoute.filter(item =>
+          item.Direction === 0 || item.Direction === 255
+        );
+        this.returnStopOfRouteData = matchStopOfRoute.filter(item =>
+          item.Direction === 1 || item.Direction === 255
+        );
+        // console.log(this.outwardStopOfRouteData);
+        // console.log(this.outwardStopOfRouteData);
+        this.getEstimatedTimeOfArrival();
+      }).catch(err => {
+        console.log(err);
+      })
+      
+    },
+    getEstimatedTimeOfArrival() {
+      this.filterOutwardStopsData = [];
+      this.filterReturnStopsData = [];
+      console.log(`https://ptx.transportdata.tw/MOTC/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`);
+      this.axios({
+        methods: 'get',
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        this.EstimatedTimeData = res.data;
+        const tempOutwardEstTime = this.EstimatedTimeData.filter(item => 
+          item.Direction === 0 || item.Direction === 255
+        )
+        const tempReturnEstTime = this.EstimatedTimeData.filter(item => 
+          item.Direction === 1 || item.Direction === 255
+        )
+        const tempOutwardStops = this.outwardStopOfRouteData.map(item => 
+          item.Stops
+        )
+        const tempReturnStops = this.returnStopOfRouteData.map(item => 
+          item.Stops
+        )
+        // console.log(this.EstimatedTimeData);
+        this.OutwardStopsArray = [].concat(...tempOutwardStops);
+        this.ReturnStopsArray = [].concat(...tempReturnStops);
+        // console.log(this.OutwardStopsArray);
+         console.log(tempOutwardEstTime);
+         console.log(tempReturnEstTime);
+        tempOutwardEstTime.forEach(EstTimeitem => {
+          if(EstTimeitem.RouteName.Zh_tw === this.routeName) {
+            this.OutwardStopsArray.forEach(item => {
+              if(item.StopUID === EstTimeitem.StopUID) {
+                this.filterOutwardStopsData.push({
+                  RouteID: EstTimeitem.RouteID,
+                  RouteUID: EstTimeitem.RouteUID,
+                  StopID: EstTimeitem.StopUID,
+                  StopStatus: EstTimeitem.StopStatus,
+                  StopNameZh: EstTimeitem.StopName.Zh_tw,
+                  Stops: item,
+                  StopSequence: item.StopSequence,
+                  EstimateTime: Math.floor(EstTimeitem.EstimateTime / 60)
+                })
+              }
+            })
+          }
+        })
+        tempReturnEstTime.forEach(EstTimeitem => {
+          if(EstTimeitem.RouteName.Zh_tw === this.routeName) {
+            this.ReturnStopsArray.forEach(item => {
+              if(item.StopUID === EstTimeitem.StopUID) {
+                this.filterReturnStopsData.push({
+                  RouteID: EstTimeitem.RouteID,
+                  RouteUID: EstTimeitem.RouteUID,
+                  StopID: EstTimeitem.StopUID,
+                  StopStatus: EstTimeitem.StopStatus,
+                  StopNameZh: EstTimeitem.StopName.Zh_tw,
+                  Stops: item,
+                  StopSequence: item.StopSequence,
+                  EstimateTime: Math.floor(EstTimeitem.EstimateTime / 60)
+                })
+              }
+            })
+          }
+        })
+        this.filterOutwardStopsData.sort(function (a, b) {
+          return a.StopSequence - b.StopSequence
+        })
+        this.filterReturnStopsData.sort(function (a, b) {
+          return a.StopSequence - b.StopSequence
+        })
+        console.log(this.filterReturnStopsData);
+      }).catch(err => {
+        console.log(err);
+      })
+    },
+    openPopup(e) {
+      this.$nextTick(() => {
+        e.target.openPopup();
+      })
+    }
+  },
+  computed: {
+    filterData() {
+      const vm = this;
+      if(vm.keyword) {
+        return  vm.ownAllRouteData.filter(item => item.displayRouteName.includes(vm.keyword))
+      }
+    }
+  },
+  mounted() {
+    const vm = this;
+    navigator.geolocation.getCurrentPosition(position => {
+      const { latitude, longitude} = position;
+      vm.userPosition = [latitude, longitude];
+    })
+    this.map = this.$refs.mapInfo;
+  },
+  created() {
+    this.getCityData();
+  },
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+
