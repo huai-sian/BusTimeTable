@@ -45,7 +45,7 @@
         
         
         <section class="route-content" v-if="routeName">
-          <div class="d-flex">
+          <div class="d-flex flex-column flex-sm-row">
             <div class="route-name">
               <p class="route-name__txt">Route Name</p>
               <p class="route-name__num">{{ routeName }}</p>
@@ -58,7 +58,7 @@
                 <div class="name-item">
                   {{ departureStopNameZh }}
                 </div>
-                <i class="fas fa-exchange d-inline-block px-3" style="font-size: 42px;"></i>
+                <i class="fas fa-exchange d-inline-block px-3 name-icon"></i>
                 <div class="name-item">
                   {{ destinationStopNameZh }}
                 </div>
@@ -66,18 +66,40 @@
             </div>
           </div>
         </section>
-      
+        <a class="btn-map-toggle text-center" @click.prevent="mapToggle">
+         <i class="fas fa-eye" v-if="!mapToggler"></i>
+         <i class="fas fa-eye-slash" v-else></i>
+         地圖 </a>
       <section>
         <div class="row">
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-6 order-2 order-md-1">
             <ul class="nav nav-tabs" id="myTab" role="tablist" v-if="routeName">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">
+                <button 
+                  class="nav-link active"
+                  id="home-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#home"
+                  type="button" role="tab"
+                  aria-controls="home" 
+                  aria-selected="true"
+                  @click.prevent="activeTab = 'outward'"
+                  >
                   去程 
                   <span class="nav-link__route">{{ destinationStopNameZh }}</span></button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">
+                <button
+                  class="nav-link"
+                  id="profile-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#profile"
+                  type="button" role="tab"
+                  aria-controls="profile"
+                  aria-selected="false"
+                  ref="returnTab"
+                  @click.prevent="activeTab = 'return'"
+                  >
                   返程 
                   <span class="nav-link__route">{{ departureStopNameZh }}</span></button>
               </li>
@@ -96,7 +118,11 @@
                       @click.prevent="clickStop(item)"
                       >
                     <div class="item-col stop-sequence">
-                      <div class="number">
+                      <div class="number number-enter" v-if="item.StopStatus == 0 && item.EstimateTime <= 1">
+                        {{ item.StopSequence }}
+                        <span class="round"></span>
+                      </div>
+                      <div class="number" v-else>
                         {{ item.StopSequence }}
                         <span class="round"></span>
                       </div>
@@ -181,8 +207,8 @@
               </div>
             </div>
           </div>
-          <div class="col-12 col-md-6" style="height: 80vh;">
-            <l-map v-bind:zoom='zoom' v-bind:minZoom='5' v-bind:center="userPosition" ref="mapInfo" style="z-index: 90;">
+          <div class="col-12 col-md-6 order-1 order-md-2 map " v-if="!mapToggler">
+            <l-map v-bind:zoom='zoom' v-bind:minZoom='10' v-bind:center="userPosition" ref="mapInfo" style="z-index: 90;">
               <l-tile-layer v-bind:url="url"></l-tile-layer>
                 <l-marker :lat-lng="userPosition" @add="openPopup" :icon="icon">
                   <l-popup v-bind:option="{ autoClose: false, closeOnClick: false }">
@@ -194,7 +220,7 @@
                 </l-marker>
                 <template v-if="routeName">
                   <l-marker 
-                    v-for="(item, i) in OutwardStopsArray"
+                    v-for="(item, i) in directionData"
                     v-bind:key="i" v-bind:lat-lng="[item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']]" 
                     @click="openPopup"
                     :icon="icon">
@@ -211,7 +237,6 @@
         </div>
       </section>
     </div>
-    
   </div>
 </template>
 
@@ -260,12 +285,14 @@ export default {
       listOpen: false,
       userPosition: [25.033671, 121.564427],
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      zoom: 10,
+      zoom: 16,
       icon: icon({
         iconUrl: "static/icon-marker-stop.png",
         iconSize: [20, 20]
       }),
       map: null,
+      activeTab: 'outward',
+      mapToggler: false,
     }
   },
   methods: {
@@ -492,6 +519,10 @@ export default {
       console.log(map);
       map.setView(center, 15);
       //map.openPopup()
+    },
+    mapToggle() {
+      this.mapToggler = !this.mapToggler;
+
     }
   },
   computed: {
@@ -500,6 +531,16 @@ export default {
       if(vm.keyword) {
         return  vm.ownAllRouteData.filter(item => item.displayRouteName.includes(vm.keyword))
       }
+    },
+    directionData() {
+      const vm = this;
+      let data;
+      if(vm.activeTab == 'outward') {
+        data =  vm.OutwardStopsArray;
+      } else {
+        data = vm.ReturnStopsArray;
+      }
+      return data;
     }
   },
   mounted() {
