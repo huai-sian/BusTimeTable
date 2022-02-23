@@ -166,8 +166,13 @@
                       @click.prevent="clickStop(item)"
                       >
                     <div class="item-col stop-sequence">
-                      <div class="number">
+                      <div class="number number-enter" v-if="item.StopStatus == 0 && item.EstimateTime <= 1">
                         {{ item.StopSequence }}
+                        <span class="round"></span>
+                      </div>
+                      <div class="number" v-else>
+                        {{ item.StopSequence }}
+                        <span class="round"></span>
                       </div>
                     </div>
                     <div class="item-col stop-status">
