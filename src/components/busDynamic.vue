@@ -242,6 +242,13 @@
         </div>
       </section>
     </div>
+    <div class="info d-flex flex-column align-items-center justify-content-center" v-if="EstimatedTimeData.length > 0" @click="clickUpdate">
+      <span class="info__txt">更新時間</span>
+      <div class="info__timer">
+        <span class="info__number">{{ timer }}</span>
+        <span>秒</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -298,6 +305,8 @@ export default {
       map: null,
       activeTab: 'outward',
       mapToggler: false,
+      timer: 30,
+      timerInterval: '',
     }
   },
   methods: {
@@ -324,6 +333,26 @@ export default {
       const HMAC = ShaObj.getHMAC('B64')
       const Authorization = 'hmac username=\"' + AppID + '\", algorithm=\"hmac-sha1\", headers=\"x-date\", signature=\"' + HMAC + '\"';
       return { Authorization: Authorization, 'X-Date': GMTString }
+    },
+    countDownStart() {
+      this.timerInterval = window.setInterval(() => {
+        this.timer --;
+        if(this.timer < 0) {
+          this.getEstimatedTimeOfArrival();
+          this.clearCountDown(this.timerInterval);
+          this.countDownStart();
+        }
+      }, 1000);
+    },
+    clearCountDown(item) {
+      this.timer = 30;
+      this.timerInterval = '';
+      window.clearInterval(item);
+    },
+    clickUpdate(){
+      this.getEstimatedTimeOfArrival();
+      this.clearCountDown(this.timerInterval);
+      this.countDownStart();
     },
     getRouteName() {
       //console.log(this.cityName);
@@ -402,6 +431,8 @@ export default {
         url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
+        this.clearCountDown(this.timerInterval);
+        this.countDownStart();
         if(res.data.length > 0) {
           this.filterOutwardStopsData = []
           this.filterReturnStopsData = []
