@@ -224,6 +224,7 @@
                   </l-popup>
                 </l-marker>
                 <template v-if="routeName">
+                  <l-polyline :lat-lngs="geoSpot" :color="'#3388ff'"></l-polyline>
                   <l-marker 
                     v-for="(item, i) in directionData"
                     v-bind:key="i" v-bind:lat-lng="[item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']]" 
@@ -257,9 +258,10 @@
 import jsSHA from 'jssha';
 import { icon } from "leaflet";
 import {
-  LMap, LTileLayer, LMarker, LPopup, LIcon
+  LMap, LTileLayer, LMarker, LPopup, LIcon, LPolyline
 } from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
+import Wkt from 'wicket';
 
 export default {
   name: 'busDynamic',
@@ -271,7 +273,8 @@ export default {
     LTileLayer,
     LMarker,
     LPopup,
-    LIcon
+    LIcon,
+    LPolyline
   },
   data(){
     return {
@@ -307,6 +310,7 @@ export default {
       mapToggler: false,
       timer: 30,
       timerInterval: '',
+      geoSpot: [],
     }
   },
   methods: {
@@ -527,9 +531,43 @@ export default {
           return a.StopSequence - b.StopSequence
         })
         this.setView(this.OutwardStopsArray);
+        this.getGeo();
         console.log(this.filterReturnStopsData);
       }).catch(err => {
         console.log(err);
+      })
+    },
+    getGeo() {
+      this.axios({
+        methods: 'get',
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        this.clearCountDown(this.timerInterval);
+        this.countDownStart();
+        if(res.data.length > 0) {
+          this.filterOutwardStopsData = []
+          this.filterReturnStopsData = []
+        }
+        const matchStopOfRoute = res.data.filter(item => {
+          if(item.RouteName.Zh_tw == this.routeName) {
+            return item
+          }
+        })
+        this.outwardStopOfRouteData = matchStopOfRoute.filter(item =>
+          item.Direction === 0 || item.Direction === 255
+        );
+        this.returnStopOfRouteData = matchStopOfRoute.filter(item =>
+          item.Direction === 1 || item.Direction === 255
+        );
+        // console.log(this.outwardStopOfRouteData);
+        // console.log(this.outwardStopOfRouteData);
+        this.getEstimatedTimeOfArrival();
+      }).catch(err => {
+        console.log(err);
+      })
+      this.geoSpot = this.OutwardStopsArray.map(item => {
+        return [item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']];
       })
     },
     setView(data) {

@@ -4,8 +4,12 @@
     <div class="page-content">
         <BusDynamic />
     </div>
+    <div class="goTop__mb d-block d-md-none" @click="scrollTop">
+      <p>Scroll to top<i class="fas fa-arrow-to-top ms-2"></i></p>
+      
+    </div>
     <Footer />
-    <div class="goTop" @click="scrollTop">
+    <div class="goTop d-none d-md-block" @click="scrollTop">
       <i class="fas fa-arrow-to-top"></i>
     </div>
   </div>
