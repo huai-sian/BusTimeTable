@@ -1,6 +1,18 @@
 <template>
-  <div class="">
-    <div class="container">
+  <div class="page-pb">
+    <div class="container-fluid head">
+      <div class="bread">
+        <div class="d-flex align-items-center justify-content-center">
+          <span class="me-1"><router-link to="/" style="color: #ccc;">首頁</router-link></span>
+          <span style="color: #ff4c29;">//</span>
+          <span class="ms-1" style="color: #ff4c29;">公車動態</span>
+        </div>
+      </div>
+      <div class="title text-center">
+        <h2 class="title__txt">Bus Dynamics</h2>
+      </div>
+    </div>
+    <div class="container mt-5">
       <section class="row text-center">
         <div class="col-12">
           <div>
@@ -44,7 +56,7 @@
       </section>
         
         
-        <section class="route-content" v-if="routeName">
+        <section class="route-content flex-column" v-if="routeName">
           <div class="d-flex flex-column flex-sm-row">
             <div class="route-name">
               <p class="route-name__txt">Route Name</p>
@@ -65,6 +77,10 @@
               </div>
             </div>
           </div>
+          <div class="mt-3 route-more" data-bs-toggle="modal" data-bs-target="#infoModal">
+            <i class="far fa-info-circle me-2 text-main"></i>
+            <span>更多資訊</span>
+          </div>
         </section>
         <a class="btn-map-toggle text-center" @click.prevent="mapToggle">
          <i class="fas fa-eye" v-if="!mapToggler"></i>
@@ -72,7 +88,7 @@
          地圖 </a>
       <section>
         <div class="row">
-          <div class="col-12 col-md-6 order-2 order-md-1">
+          <div class="col-12 col-md-6 order-2 order-md-1 mt-3 mt-md-0">
             <ul class="nav nav-tabs" id="myTab" role="tablist" v-if="routeName">
               <li class="nav-item" role="presentation">
                 <button 
@@ -224,7 +240,7 @@
                   </l-popup>
                 </l-marker>
                 <template v-if="routeName">
-                  <l-polyline :lat-lngs="geoSpot" :color="'#3388ff'"></l-polyline>
+                  <l-polyline :lat-lngs="geoSpot" :color="'#ff4c29'" :dashArray="'[10, 20]'" :weight="5"></l-polyline>
                   <l-marker 
                     v-for="(item, i) in directionData"
                     v-bind:key="i" v-bind:lat-lng="[item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']]" 
@@ -250,6 +266,28 @@
         <span>秒</span>
       </div>
     </div>
+      <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content text-center">
+          <div class="modal-header">
+            <h5 class="modal-title" id="infoModalLabel">{{ RouteMeta.RouteName ? RouteMeta.RouteName.Zh_tw : null }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <h3 class="infoModal__name mb-3">{{ RouteMeta.RouteName ? RouteMeta.DepartureStopNameZh : null }} - {{ RouteMeta.RouteName ? RouteMeta.DestinationStopNameZh : null }}</h3>
+            <h3 class="infoModal__operator mb-3">{{ RouteMeta.RouteName ? RouteMeta.Operators[0].OperatorName.Zh_tw : null }}</h3>
+            <template v-if="RouteMeta.RouteName">
+              <h3 class="infoModal__ticket mb-3">備註：{{ RouteMeta.TicketPriceDescriptionZh ? RouteMeta.TicketPriceDescriptionZh : '無' }}</h3>
+            </template>
+            <a class="infoModal__more mb-3" target="_blank" :href="RouteMeta.RouteName ? RouteMeta.RouteMapImageUrl : null">詳細站牌資訊</a>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-dismiss" data-bs-dismiss="modal">關閉</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
   </div>
 </template>
 
@@ -311,6 +349,8 @@ export default {
       timer: 30,
       timerInterval: '',
       geoSpot: [],
+      shapeData: [],
+      RouteMeta: []
     }
   },
   methods: {
@@ -455,10 +495,28 @@ export default {
         // console.log(this.outwardStopOfRouteData);
         // console.log(this.outwardStopOfRouteData);
         this.getEstimatedTimeOfArrival();
+        this.getRouteMeta()
       }).catch(err => {
         console.log(err);
       })
       
+    },
+    getRouteMeta(){
+      this.RouteMeta = [];
+      this.axios({
+        methods: 'get',
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        headers: this.getAuthorizationHeader()
+      }).then(res => {
+        res.data.filter(item => {
+          return item.RouteName.Zh_tw === this.routeName;
+        })
+        this.RouteMeta = res.data[0];
+        console.log(this.RouteMeta);
+        console.log(this.RouteMeta.RouteName.Zh_tw);
+      }).catch(err => {
+        console.log(err);
+      })
     },
     getEstimatedTimeOfArrival() {
       this.filterOutwardStopsData = [];
@@ -540,35 +598,26 @@ export default {
     getGeo() {
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Shape/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
-        this.clearCountDown(this.timerInterval);
-        this.countDownStart();
-        if(res.data.length > 0) {
-          this.filterOutwardStopsData = []
-          this.filterReturnStopsData = []
-        }
-        const matchStopOfRoute = res.data.filter(item => {
-          if(item.RouteName.Zh_tw == this.routeName) {
-            return item
-          }
-        })
-        this.outwardStopOfRouteData = matchStopOfRoute.filter(item =>
-          item.Direction === 0 || item.Direction === 255
-        );
-        this.returnStopOfRouteData = matchStopOfRoute.filter(item =>
-          item.Direction === 1 || item.Direction === 255
-        );
-        // console.log(this.outwardStopOfRouteData);
-        // console.log(this.outwardStopOfRouteData);
-        this.getEstimatedTimeOfArrival();
+        this.shapeData = res.data;
+        this.handlePolyLine();
       }).catch(err => {
         console.log(err);
       })
-      this.geoSpot = this.OutwardStopsArray.map(item => {
-        return [item['StopPosition']['PositionLat'], item['StopPosition']['PositionLon']];
+    },
+    handlePolyLine() {
+      const tempData = this.shapeData.filter(item => {
+        return item.RouteName.Zh_tw === this.routeName;
       })
+      const wkt = new Wkt.Wkt();
+      this.geoSpot = wkt.read(tempData[0].Geometry).toJson();
+      this.geoSpot = this.geoSpot['coordinates'];
+      this.geoSpot.forEach(item => {
+        item.reverse();
+      })
+      console.log(this.geoSpot);
     },
     setView(data) {
       const vm = this;
@@ -577,6 +626,7 @@ export default {
       })
       const index = Math.round(tempPositionArr.length / 2)
       const center = tempPositionArr[index];
+      
       const map  = vm.$refs.mapInfo.mapObject;
       console.log(map);
       map.setView(center, 15);
@@ -592,11 +642,9 @@ export default {
       const map  = vm.$refs.mapInfo.mapObject;
       console.log(map);
       map.setView(center, 15);
-      //map.openPopup()
     },
     mapToggle() {
       this.mapToggler = !this.mapToggler;
-
     }
   },
   computed: {

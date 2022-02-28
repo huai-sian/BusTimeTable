@@ -2,6 +2,18 @@ a {
   text-decoration: none;
 }
 
+body {
+  font-family: Rubik,Helvetica,Arial,sans-serif;
+}
+
+.text-main {
+  color: #ff5e14;
+}
+
+.navbar-light .navbar-toggler {
+  border-color: transparent;
+}
+
 .goTop {
   width: 60px;
   height: 60px;
@@ -17,6 +29,9 @@ a {
   transition: all .4s;
   cursor: pointer;
   z-index: 100;
+  @include small {
+    display: none;
+  }
   &__mb {
     text-transform: uppercase;
     text-align: center;
@@ -40,6 +55,75 @@ a {
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
+  @include small {
+    margin-top: 0px;
+  }
+}
+
+.hero {
+  height: 80vh;
+  padding-bottom: 80px;
+  background-image: url('~@/assets/images/hero.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  position: relative;
+  @include small {
+    margin-top: 0px;
+  }
+  &__txtgrp {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  &__title {
+    color: #ccc;
+    margin-bottom: 15px;
+    &-h1 {
+      font-size: 62px;
+      margin: 0;
+      color: #fff;
+      text-transform: uppercase;
+      font-family: Rubik,Helvetica,Arial,sans-serif;
+      font-weight: 600;
+      @include small {
+        font-size: 35px;
+      }
+    }
+    &-h2 {
+      font-size: 26px;
+      font-weight: 600;
+      margin-top: 10px;
+      letter-spacing: 20px;
+      font-family: Rubik,Helvetica,Arial,sans-serif;
+      @include small {
+        font-size: 20px;
+        letter-spacing: 1px;
+        font-weight: unset;
+      }
+    }
+  }
+  &__btn {
+    text-decoration: none;
+    transition: all .4s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 240px;
+    padding: 20px 40px;
+    border-radius: 30px;
+    color: #fff;
+    background-color: #ff4c29;
+    margin: 30px 0 30px;
+    font-size: 18px;
+    letter-spacing: 1px;
+    font-weight: 600;
+    &:hover {
+      color: #ff4c29;
+      background-color: #fff;
+    }
+  }
 }
 
 .title {
@@ -56,7 +140,16 @@ a {
 }
 
 .page-content {
-  padding: 100px 0;
+  padding: 96px 0;
+  padding-bottom: 0;
+  @include small {
+    padding-bottom: 0;
+    padding-top: 78.5px;
+  }
+}
+
+.page-pb {
+  padding-bottom: 90px;
 }
 
 .top {
@@ -245,6 +338,10 @@ a {
       }
     }
   }
+  &-more {
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
 }
 
 #myTab {
@@ -266,6 +363,7 @@ a {
   padding: 20px;
   @include small {
     padding: 20px 0;
+    padding-bottom: 50px;
   }
 }
 
@@ -357,7 +455,7 @@ a {
   &.number-enter {
     .round {
       background-color: #ff5e14;
-      box-shadow: 1px 1px 6px 4px #ff5e14;
+      box-shadow: 1px 1px 4px 4px #ff5e14;
     }
   }
 }
@@ -477,6 +575,7 @@ a {
   border-radius: 50%;
   box-shadow: 1px 2px 6px 4px rgba(53, 57, 68, .20);
   color: white;
+  cursor: pointer;
   @include small {
     position: relative;
     width: 100%;
@@ -497,5 +596,82 @@ a {
   &__txt {
     font-size: 14px;
     margin-bottom: 3px;
+  }
+}
+
+#infoModal {
+  .modal-header {
+    background-color: #ff4c29;
+    border-bottom: none;
+  }
+  .modal-title {
+    color: white;
+    font-size: 1.6rem;
+    font-weight: 600;
+  }
+  .btn-dismiss {
+    background-color: #ff4c29;
+    color: white;
+  }
+  .infoModal {
+    &__name {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    &__more {
+      font-weight: 600;
+      color: #ff4c29;
+    }
+  }
+}
+
+.section {
+  &-service {
+    margin-top: 100px;
+    margin-bottom: 110px;
+    .col-md-4 {
+      border-right: 1px dotted #c3c6ca;
+      &:last-of-type {
+        border-right: none;
+      }
+    }
+    &__title {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    &__txt {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #72777e;
+      margin-bottom: 1rem;
+    }
+  }
+  &-imgs {
+    margin-top: 80px;
+    .row {
+       > * {
+         padding: 0 .25rem;
+       }
+    }
+  }
+  &-imgfr {
+    width: 100%;
+    height: 20rem;
+    background-image: url('~@/assets/images/home-1.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    @include small {
+      height: 16rem;
+    }
+  }
+}
+
+.navbar-nav {
+  .nav-link {
+    color: white;
+    &.router-link-exact-active {
+      color: #ff4c29;
+    }
   }
 }
