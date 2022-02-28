@@ -670,6 +670,10 @@ body {
 .navbar-nav {
   .nav-link {
     color: white;
+    transition: all .4s;
+    &:hover {
+      text-shadow: 0 0 5px #ff4c29;
+    }
     &.router-link-exact-active {
       color: #ff4c29;
     }
