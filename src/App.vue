@@ -1,5 +1,10 @@
 <template>
   <div id="app">
+    <Loading :active.sync="isLoading">
+      <template slot="default">
+        <img src="./assets/images/ajax-loader.gif">
+      </template>
+    </Loading>
     <Navbar />
     <div class="page-content">
         <router-view></router-view>
@@ -15,7 +20,7 @@
 </template>
 
 <script>
-
+import { mapGetters } from 'vuex'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 
@@ -40,6 +45,9 @@ export default {
     scrollTop() {
       window.scrollTo({top: 0, behavior: 'smooth'})
     }
+  },
+  computed: {
+    ...mapGetters(['isLoading']),
   }
 }
 </script>

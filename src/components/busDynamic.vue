@@ -355,14 +355,18 @@ export default {
   },
   methods: {
     getCityData() {
+      this.$store.dispatch('updateLoading', true);
       this.axios({
         methods: 'get',
         url: 'https://gist.motc.gov.tw/gist_api/V3/Map/Basic/City?$format=JSON',
         headers: this.getAuthorizationHeader()
       }).then(res => {
         this.cityData = res.data;
+        console.log(res.data);
+        this.$store.dispatch('updateLoading', false);
       }).catch(err => {
         console.log(err);
+        this.$store.dispatch('updateLoading', false);
       })
     },
     getAuthorizationHeader() {
@@ -470,6 +474,7 @@ export default {
       this.routeName = name;
       this.listOpen = false;
       this.setRouteStopName();
+      this.$store.dispatch('updateLoading', true);
       this.axios({
         methods: 'get',
         url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
@@ -495,9 +500,11 @@ export default {
         // console.log(this.outwardStopOfRouteData);
         // console.log(this.outwardStopOfRouteData);
         this.getEstimatedTimeOfArrival();
-        this.getRouteMeta()
+        this.getRouteMeta();
+        this.$store.dispatch('updateLoading', false);
       }).catch(err => {
         console.log(err);
+         this.$store.dispatch('updateLoading', false);
       })
       
     },
