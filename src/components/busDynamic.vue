@@ -354,11 +354,17 @@ export default {
     }
   },
   methods: {
+    setLocalStorage(key, value) {
+      const item = {
+        value,
+      }
+      localStorage.setItem(key, JSON.stringify(item));
+    },
     getCityData() {
       this.$store.dispatch('updateLoading', true);
       this.axios({
         methods: 'get',
-        url: 'https://gist.motc.gov.tw/gist_api/V3/Map/Basic/City?$format=JSON',
+        url: 'https://tdx.transportdata.tw/api/basic/v2/Basic/City?$format=JSON',
         headers: this.getAuthorizationHeader()
       }).then(res => {
         this.cityData = res.data;
@@ -369,18 +375,33 @@ export default {
         this.$store.dispatch('updateLoading', false);
       })
     },
-    getAuthorizationHeader() {
-      // const AppID = '62fb64915752471fb3027277da00f6cf'
-      // const AppKey = 'tHKmnQUiUJOJZL3KesbRFriOLi4'
-      const AppID = process.env.VUE_APP_APPID
-      const AppKey = process.env.VUE_APP_APPKEY
-      const GMTString = new Date().toGMTString()
-      const ShaObj = new jsSHA('SHA-1', 'TEXT')
-      ShaObj.setHMACKey(AppKey, 'TEXT')
-      ShaObj.update('x-date: ' + GMTString)
-      const HMAC = ShaObj.getHMAC('B64')
-      const Authorization = 'hmac username=\"' + AppID + '\", algorithm=\"hmac-sha1\", headers=\"x-date\", signature=\"' + HMAC + '\"';
-      return { Authorization: Authorization, 'X-Date': GMTString }
+    async getAuthorizationHeader() {
+      const test = JSON.parse(localStorage.getItem("taiwan-bus"));
+      console.log(test);
+
+      if (test && test.value?.expired_at > Date.now()) {
+        return { Authorization: `Bearer ${test.value.access_token}` };
+      }
+      const AppID = process.env.VUE_APP_APPID;
+      const AppKey = process.env.VUE_APP_APPKEY;
+
+      const url =
+        "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token";
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: AppID ,
+          client_secret: AppKey,
+        }),
+      });
+      let data = await response.json();
+      data = { ...data, expired_at: Date.now() + data.expires_in * 1000 };
+      this.setLocalStorage("taiwan-bus", data);
+      return { Authorization: `Bearer ${data.access_token}` };
     },
     countDownStart() {
       this.timerInterval = window.setInterval(() => {
@@ -408,7 +429,7 @@ export default {
       this.ownSubRouteData = [];
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${this.cityName}?$format=JSON`,
+        url: `https://tdx.transportdata.tw/api/basic/v2/Bus/Route/City/${this.cityName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
         //console.log(res.data);
@@ -477,7 +498,7 @@ export default {
       this.$store.dispatch('updateLoading', true);
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        url: `https://tdx.transportdata.tw/api/basic/v2/Bus/StopOfRoute/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
         this.clearCountDown(this.timerInterval);
@@ -512,7 +533,7 @@ export default {
       this.RouteMeta = [];
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Route/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        url: `https://tdx.transportdata.tw/api/basic/v2/Bus/Route/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
         res.data.filter(item => {
@@ -528,10 +549,10 @@ export default {
     getEstimatedTimeOfArrival() {
       this.filterOutwardStopsData = [];
       this.filterReturnStopsData = [];
-      console.log(`https://ptx.transportdata.tw/MOTC/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`);
+      console.log(`https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`);
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        url: `https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
         this.EstimatedTimeData = res.data;
@@ -605,7 +626,7 @@ export default {
     getGeo() {
       this.axios({
         methods: 'get',
-        url: `https://ptx.transportdata.tw/MOTC/v2/Bus/Shape/City/${this.cityName}/${this.routeName}?$format=JSON`,
+        url: `https://tdx.transportdata.tw/api/basic/v2/Bus/Shape/City/${this.cityName}/${this.routeName}?$format=JSON`,
         headers: this.getAuthorizationHeader()
       }).then(res => {
         this.shapeData = res.data;
